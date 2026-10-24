@@ -1,0 +1,101 @@
+<template>
+  <div class="page" ontouchmove="preventScroll">
+    <text class="title">Game Over</text>
+    <text class="score">{{ floors }} 层</text>
+    <text class="record-tag" if="{{ isNewRecord }}">新纪录！</text>
+    <input class="back-btn" type="button" value="&lt; 返回" onclick="goBack" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import storage from "@system.storage"
+
+export default {
+  protected: {
+    floors: 0
+  },
+
+  private: {
+    isNewRecord: false
+  },
+
+  onInit() {
+    const self = this
+    storage.get({
+      key: 'highscore',
+      success: function(data) {
+        const old = parseInt(data, 10) || 0
+        if (self.floors > old) {
+          storage.set({
+            key: 'highscore',
+            value: String(self.floors)
+          })
+          self.isNewRecord = true
+        }
+      },
+      fail: function() {
+        if (self.floors > 0) {
+          storage.set({
+            key: 'highscore',
+            value: String(self.floors)
+          })
+          self.isNewRecord = true
+        }
+      }
+    })
+  },
+
+  goBack() {
+    router.replace({
+      uri: "/pages/index"
+    })
+  },
+
+  preventScroll() {}
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: #87CEEB;
+}
+
+.title {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.score {
+  font-size: 24px;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.record-tag {
+  font-size: 14px;
+  color: #FFD700;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+
+.back-btn {
+  position: fixed;
+  bottom: 16px;
+  width: 120px;
+  height: 42px;
+  border-radius: 21px;
+  background-color: #ffffff;
+  font-size: 15px;
+  color: #333333;
+  border: none;
+}
+</style>

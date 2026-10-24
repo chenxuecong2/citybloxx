@@ -1,0 +1,73 @@
+<template>
+  <div class="page" ontouchmove="preventScroll">
+    <text class="title">都市摩天楼</text>
+    <div class="menu">
+      <div class="menu-item" onclick="routeTower">
+        <text class="menu-text">快速游戏</text>
+      </div>
+      <div class="menu-item" onclick="showHighscore">
+        <text class="menu-text">最高分</text>
+      </div>
+      <div class="menu-item" onclick="exitApp">
+        <text class="menu-text">退出</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import app from "@system.app"
+
+export default {
+  routeTower() {
+    router.push({ uri: "/pages/tower" })
+  },
+  showHighscore() {
+    router.push({ uri: "/pages/highscore" })
+  },
+  exitApp() {
+    app.terminate()
+  },
+
+  preventScroll() {}
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: #87ceeb;
+}
+.title {
+  font-size: 24px;
+  color: #ffffff;
+  font-weight: bold;
+  letter-spacing: 5px;
+  margin-top: 60px;
+}
+.menu {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 50px;
+}
+.menu-item {
+  width: 180px;
+  height: 48px;
+  border-radius: 6px;
+  justify-content: center;
+  align-items: center;
+  background-color: #ffffff;
+  margin-bottom: 14px;
+}
+.menu-text {
+  font-size: 17px;
+  color: #333333;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+</style>

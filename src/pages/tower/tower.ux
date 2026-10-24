@@ -1,0 +1,262 @@
+<template>
+  <div class="tower-page" ontouchmove="preventScroll">
+    <div class="game-area" onclick="onTap">
+      <text class="hud" style="z-index: 10;">楼层 {{ towerLen }}</text>
+      <!-- 容错小方块 -->
+      <div class="lives-row">
+        <image class="life-icon" src="/common/assets/block.png" style="opacity: {{ lives >= 1 ? 1 : 0.3 }};"></image>
+        <image class="life-icon" src="/common/assets/block.png" style="opacity: {{ lives >= 2 ? 1 : 0.3 }};"></image>
+        <image class="life-icon" src="/common/assets/block.png" style="opacity: {{ lives >= 3 ? 1 : 0.3 }};"></image>
+      </div>
+
+      <div class="ground"></div>
+
+      <!-- 楼层：用 for 循环动态渲染，不再限制 16 层 -->
+      <!-- 楼层动态渲染 -->
+      <block for="{{fl}}">
+        <image class="fi" src="/common/assets/block.png" style="left: {{ $item }}px; bottom: {{ 7 + $idx * 20 - bottomShift }}px;"></image>
+      </block>
+
+      <image class="hook-img" if="{{ swinging }}" src="/common/assets/hook.png" style="left: {{ hx }}px;"></image>
+      <image class="si" if="{{ swinging }}" src="/common/assets/block-rope.png" style="left: {{ sx }}px; bottom: {{ swingBtm }}px;"></image>
+      <!-- 擦肩而过的方块：没叠准时掉落 -->
+      <image class="miss-block" src="/common/assets/block.png" if="{{ missShow }}" style="left: {{ missX }}px; bottom: {{ missY }}px;"></image>
+    </div>
+
+    <input class="back-btn" type="button" value="&lt; 返回" onclick="goBack" if="{{ gameState !== 'over' }}" />
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+
+const CX = (192 - 96) / 2  // 居中 left
+const HX = (192 - 28) / 2   // 钩子居中 left
+
+export default {
+  private: {
+    gameState: 'playing',
+    towerLen: 0,
+    lives: 3,
+    fl: [],
+    swinging: false,
+    canTap: true,
+    swingBtm: 107,
+    sx: CX,
+    hx: HX,
+    bottomShift: 0,
+    missY: -100,
+    missShow: false,
+    missX: CX,
+    _count: 0,
+    _locs: [],   // 每层的 left 位置
+    _phase: 0,
+    _timer: null,
+    _fallTimer: null
+  },
+
+  onInit() {
+    this.lives = 3
+    this._count = 1
+    this._locs = [CX]
+    this.towerLen = 0
+    this._phase = 0
+    this.sx = CX
+    this.swingBtm = 107
+    this.swinging = true
+    this.syncFloors()
+    this.startLoop()
+  },
+
+  // 页面销毁时必须收掉定时器，否则玩到一半点「返回」，16ms 的摆动循环会在已销毁的页面上继续空转
+  onDestroy() {
+    if (this._timer) clearInterval(this._timer)
+    if (this._fallTimer) clearInterval(this._fallTimer)
+  },
+
+  syncFloors() {
+    const f = []
+    for (let i = 0; i < this._count; i++) f.push(this._locs[i])
+    this.fl = f
+    this.towerLen = this._count - 1
+  },
+
+  startLoop() {
+    if (this._timer) clearInterval(this._timer)
+    const s = this
+    this._timer = setInterval(function () {
+      if (s.gameState !== 'playing') return
+      s._phase += 0.035
+      s.sx = CX + Math.sin(s._phase) * 46
+    }, 16)
+  },
+
+  onTap() {
+    if (this.gameState !== 'playing' || !this.canTap) return
+
+    const offset = this.sx - CX  // 摆动偏移量
+
+    if (Math.abs(offset) > 24) {
+      // 叠偏了 — 方块擦肩而过掉落动画
+      this.lives--
+      this.missX = this.sx
+      this.missY = this.swingBtm
+      this.missShow = true
+      const self = this
+      let fall = 0
+      const fallTimer = setInterval(function () {
+        fall += 8
+        self.missY = self.swingBtm - fall
+        if (fall > 171) {
+          clearInterval(fallTimer)
+          if (self._fallTimer === fallTimer) self._fallTimer = null
+          self.missShow = false
+        }
+      }, 16)
+      // 只在 onDestroy 时需要它；动画自己用上面的局部引用清理，避免两次失手时互相清错
+      this._fallTimer = fallTimer
+
+      if (this.lives <= 0) {
+        // 立刻停摆并锁住输入：死亡动画这 0.5 秒里再点一下会重复调度一次结算跳转
+        this.gameState = 'over'
+        if (this._timer) clearInterval(this._timer)
+        this.swinging = false
+        const s = this
+        setTimeout(function () {
+          s.gameOver()
+        }, 500)
+        return
+      }
+      // 不记录这层，不增加 _count，继续摆动
+      return
+    }
+
+    // 叠正了 — 0.5 秒冷却后才能放下一个
+    this._count++
+    this._locs.push(this.sx)
+    this.canTap = false
+
+    // 大致重合（叠在上一块范围内）→ 容错+1，上限3
+    if (this.lives < 3) {
+      this.lives++
+    }
+
+    this.syncFloors()
+    this.swingBtm = 107
+    this.shiftUp()
+    // 0.5 秒后恢复摆动，才能放下一个
+    const s = this
+    setTimeout(function () {
+      s.canTap = true
+    }, 500)
+  },
+
+  gameOver() {
+    this.gameState = 'over'
+    if (this._timer) clearInterval(this._timer)
+    this.swinging = false
+    this.towerLen = this._count - 1
+
+    router.push({
+      uri: "/pages/gameover",
+      params: { floors: this.towerLen }
+    })
+  },
+
+  goBack() { router.back() },
+
+  preventScroll() {},
+
+  shiftUp() {
+    // 第3层开始，每多一层整体下移 20px
+    if (this._count > 3) {
+      this.bottomShift = (this._count - 3) * 20
+    }
+  }
+}
+</script>
+
+<style>
+.tower-page {
+  flex-direction: column;
+  background-color: #87CEEB;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.game-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.hud {
+  position: absolute;
+  top: 30px;
+  left: 14px;
+  font-size: 18px;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  z-index: 2;
+}
+.lives-row {
+  position: absolute;
+  top: 52px;
+  left: 14px;
+  flex-direction: row;
+  z-index: 2;
+}
+.life-icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+}
+.ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(to bottom, #5a3a1a, #3a2210);
+}
+.fi {
+  position: absolute;
+  width: 96px;
+  height: 20px;
+  z-index: 1;
+}
+.hook-img {
+  position: absolute;
+  top: 0;
+  width: 28px;
+  height: 40px;
+  z-index: 3;
+}
+.si {
+  position: absolute;
+  width: 96px;
+  height: 22px;
+  z-index: 3;
+}
+.back-btn {
+  position: fixed;
+  bottom: 6px;
+  left: 59px;
+  width: 74px;
+  height: 32px;
+  border-radius: 16px;
+  background-color: #666;
+  font-size: 12px;
+  color: #fff;
+  border: 1px solid #aaa;
+  z-index: 5;
+}
+
+.miss-block {
+  position: absolute;
+  width: 96px;
+  height: 20px;
+  z-index: 2;
+}
+</style>

@@ -1,0 +1,34 @@
+{
+  "name": "citybloxx",
+  "version": "1.0.0",
+  "description": "都市摩天楼 - Tower Bloxx for Xiaomi Watch：小米快应用（Vela）手表端叠楼小游戏，点击放下摆动的楼层，叠偏扣命、叠正加层，最高分存本地。",
+  "keywords": [
+    "quickapp",
+    "vela",
+    "xiaomi",
+    "smartwatch",
+    "minigame",
+    "tower-bloxx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chenxuecong2/citybloxx.git"
+  },
+  "homepage": "https://github.com/chenxuecong2/citybloxx#readme",
+  "bugs": {
+    "url": "https://github.com/chenxuecong2/citybloxx/issues"
+  },
+  "author": "chenxuecong2",
+  "engines": {
+    "node": ">=8.10"
+  },
+  "scripts": {
+    "start": "aiot start --watch",
+    "build": "aiot build",
+    "release": "aiot release"
+  },
+  "devDependencies": {
+    "@aiot-toolkit/jsc": "^1.0.3",
+    "aiot-toolkit": "^2.0.5"
+  }
+}
